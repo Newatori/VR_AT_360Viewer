@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	
+		<meta charset="utf-8">
+		<title>Allan Tori 360 Viewer app</title>
+		<style>
+			body { margin: 0; }
+			canvas { display: block; }
+		</style>	
+			
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script src="js/StereoEffect.js"></script>
+		<script src="js/DeviceOrientationControls.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>	
+		
+		<script type="module">
+				
+			import { StereoEffect } from './js/StereoEffect.js';
+			
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();				
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			var effect = new StereoEffect(renderer);
+			var isDragging = false;
+			var time = 0;
+			var direction = "right";
+			var lastXposition = 0;
+			var scale = 1;
+			var lon = 0, onMouseDownLon = 0,
+				lat = 0, onMouseDownLat = 0,
+				phi = 0, theta = 0, onMouseDownMouseX = 0, onMouseDownMouseY = 0;
+			var controls = new THREE.OrbitControls(camera);
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 1;
+			var texture = new THREE.TextureLoader().load( "textures/360.jpg" );
+			var material = new THREE.MeshBasicMaterial({ map: texture });	
+			var vrmode = true;			
+			material.side = THREE.DoubleSide;
+			var geometry = new THREE.SphereGeometry( 5, 50, 50 );;	
+			//var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+			var sphere = new THREE.Mesh( geometry, material );
+			scene.add( sphere );
+	
+		
+					
+			
+			camera.position.z = 0;			
+			$(renderer.domElement).on('mousedown', function(e) {
+				isDragging = true;
+				var clientX = event.clientX || event.touches[ 0 ].clientX;
+				var clientY = event.clientY || event.touches[ 0 ].clientY;
+
+				onMouseDownMouseX = clientX;
+				onMouseDownMouseY = clientY;
+
+				onMouseDownLon = lon;
+				onMouseDownLat = lat;
+			})
+			.on('mousemove', function(e) {
+				if(isDragging){
+					//console.log("x:"+e.clientX + " y:"+e.clientY);
+					var clientX = event.clientX || event.touches[ 0 ].clientX;
+					var clientY = event.clientY || event.touches[ 0 ].clientY;
+					
+					if(lastXposition < event.clientX){
+						direction = "left";	
+					}else{
+						direction = "right";
+					}
+					lon = ( onMouseDownMouseX - clientX ) * 0.1 + onMouseDownLon;
+					lat = ( clientY - onMouseDownMouseY ) * 0.1 + onMouseDownLat;
+						
+						lastXposition = event.clientX;
+					}
+			
+			}).on('mouseup', function(e) {
+				isDragging = false;
+			
+			});
+			
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+			
+			function switchVRMode(){
+				vrmode = !vrmode;
+				
+			}
+			
+			function animate() {
+				
+				requestAnimationFrame( animate );	
+
+				if ( isDragging === false ) {
+					if(direction == "right")
+						lon += 0.05;
+					else
+						lon -= 0.05;
+
+				}
+				
+				lat = Math.max( - 85, Math.min( 85, lat ) );
+				phi = THREE.MathUtils.degToRad( 90 - lat );
+				theta = THREE.MathUtils.degToRad( lon );
+
+				camera.lookAt( new THREE.Vector3(500 * Math.sin( phi ) * Math.cos( theta ),500 * Math.cos( phi ),500 * Math.sin( phi ) * Math.sin( theta ) ));
+				if(vrmode){
+					effect.render(scene, camera);
+					toggleFullScreen(true);
+				}else{					
+					renderer.render( scene, camera );
+					onWindowResize();
+					toggleFullScreen(false);
+				}
+			}
+			
+			function toggleFullScreen(active) {
+				if(active){
+					document.documentElement.requestFullscreen();
+				}else{
+					document.exitFullscreen();
+				}
+			}
+			
+			document.getElementById ("BT_VR").addEventListener ("click", switchVRMode, false);
+			window.addEventListener( 'resize', onWindowResize, false );			
+			animate();
+			
+		</script>
+		<button id="BT_VR" style="bottom: 0;  left: 0;  position: absolute;  width: 10%;">Modo VR</button>
+		
+	</body>
+	
+</html>
